@@ -6,22 +6,9 @@ const DEFAULT_SETTINGS = {
   WAIT_TIME: 10, // チャット取得間隔（秒）
   MESSAGE_LIFETIME: 300, // メッセージの保持期間（秒）
 
-  // OpenAI設定
-  OPENAI_API_KEY: '',
-  OPENAI_MODEL: 'gpt-4o-mini',
-  SYSTEM_PROMPT: `あなたはYouTubeライブ配信のチャットに返答するAIチャットボットです。
-視聴者からのチャットメッセージに対して、親しみやすく、でも礼儀正しい口調で返答してください。
-返答は簡潔に、1〜2文程度でお願いします。`,
-
-  // コメント選択用のプロンプトを追加
-  COMMENT_SELECTION_PROMPT: `以下のYouTubeライブチャットのコメントリストから、最も返信に適したコメントを1つ選んでください。
-選ぶ際は以下の基準を考慮してください：
-- 質問や会話が成立しそうなコメント
-- 不適切な内容を含まないコメント
-- 単純な挨拶だけでないコメント
-
-返答は以下のJSON形式で返してください：
-{"selectedId": "選択したコメントのID"}`,
+  // Dify設定
+  DIFY_API_KEY: 'app-OTi836Fh2FKQp5EBdc9KL2gQ',
+  DIFY_API_ENDPOINT: 'http://20.212.179.227/v1',
 
   // VOICEVOX設定
   VOICEVOX_ENDPOINT: 'http://localhost:50021',
