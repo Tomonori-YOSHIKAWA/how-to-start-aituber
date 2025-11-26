@@ -7,8 +7,8 @@ const DEFAULT_SETTINGS = {
   MESSAGE_LIFETIME: 300, // メッセージの保持期間（秒）
 
   // Dify設定
-  DIFY_API_KEY: 'app-OTi836Fh2FKQp5EBdc9KL2gQ',
-  DIFY_API_ENDPOINT: 'http://20.212.179.227/v1',
+  DIFY_API_KEY: 'app-TbCNFXf0eIQzbMgoh7JSqIxs',
+  DIFY_API_ENDPOINT: 'http://172.188.120.18/v1',
 
   // VOICEVOX設定
   VOICEVOX_ENDPOINT: 'http://localhost:50021',
