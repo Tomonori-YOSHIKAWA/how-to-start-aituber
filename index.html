@@ -186,6 +186,13 @@
           <button id="difyConnectButton" onclick="testDifyConnection()">接続テスト</button>
           <div id="difyStatus" class="status-text"></div>
         </div>
+        <div class="setting-item">
+          <label for="difyInputVariable">Workflow入力変数名:</label>
+          <input type="text" id="difyInputVariable" placeholder="query">
+          <small style="color: #888; display: block; margin-top: 4px;">
+            ※ Dify Workflowの入力変数名（通常は'query', 'question', 'input'など）
+          </small>
+        </div>
       </div>
 
       <div class="settings-group">
@@ -350,6 +357,7 @@
       document.getElementById('waitTime').value = settings.WAIT_TIME;
       document.getElementById('difyApiKey').value = settings.DIFY_API_KEY;
       document.getElementById('difyEndpoint').value = settings.DIFY_API_ENDPOINT;
+      document.getElementById('difyInputVariable').value = settings.DIFY_INPUT_VARIABLE || 'query';
       document.getElementById('voicevoxEndpoint').value = settings.VOICEVOX_ENDPOINT;
       document.getElementById('voicevoxSpeaker').value = settings.VOICEVOX_SPEAKER;
       document.getElementById('conversationHistorySize').value = settings.CONVERSATION_HISTORY_SIZE;
@@ -448,6 +456,7 @@
         VIDEO_ID: document.getElementById('videoId').value,
         DIFY_API_KEY: document.getElementById('difyApiKey').value,
         DIFY_API_ENDPOINT: document.getElementById('difyEndpoint').value,
+        DIFY_INPUT_VARIABLE: document.getElementById('difyInputVariable').value || 'query',
         VOICEVOX_ENDPOINT: document.getElementById('voicevoxEndpoint').value,
         VOICEVOX_SPEAKER: parseInt(document.getElementById('voicevoxSpeaker').value),
         WAIT_TIME: parseInt(document.getElementById('waitTime').value),
@@ -671,7 +680,7 @@
                   },
                   body: JSON.stringify({
                     inputs: {
-                      question: commentText
+                      [settings.DIFY_INPUT_VARIABLE]: commentText
                     },
                     response_mode: "blocking",
                     user: `user-${Date.now()}`
@@ -702,11 +711,22 @@
         console.log(JSON.stringify(data, null, 2));
         console.log('=== トップレベルのキー ===', Object.keys(data));
 
+        // トップレベルのエラーをチェック
         if (data.error) {
           console.error('Dify API応答エラー:', data.error);
           showError(
             'Dify APIでエラーが発生しました。',
             JSON.stringify(data.error, null, 2)
+          );
+          return "申し訳ありませんが、エラーが発生しました。";
+        }
+
+        // Workflowのエラーをチェック
+        if (data.data && data.data.status === 'failed' && data.data.error) {
+          console.error('Dify Workflow エラー:', data.data.error);
+          showError(
+            'Dify Workflowの実行に失敗しました。',
+            `エラー: ${data.data.error}\n\nWorkflow設定で入力変数名を確認してください。\n現在送信している変数: ${settings.DIFY_INPUT_VARIABLE}`
           );
           return "申し訳ありませんが、エラーが発生しました。";
         }

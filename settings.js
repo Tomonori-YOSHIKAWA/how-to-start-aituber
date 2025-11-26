@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   // Dify設定
   DIFY_API_KEY: 'app-TbCNFXf0eIQzbMgoh7JSqIxs',
   DIFY_API_ENDPOINT: 'http://172.188.120.18/v1',
+  DIFY_INPUT_VARIABLE: 'query', // Dify Workflowの入力変数名（通常は'query', 'question', 'input'など）
 
   // VOICEVOX設定
   VOICEVOX_ENDPOINT: 'http://localhost:50021',
