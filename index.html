@@ -1326,9 +1326,9 @@
       try {
         const settings = getSettings();
         console.log('音声生成開始:', text);
-        
-        // タイムアウト設定を追加
-        const timeout = 10000; // 10秒
+
+        // タイムアウト設定を追加（長い文章の音声合成に対応）
+        const timeout = 60000; // 60秒
         
         // audio_queryリクエストにタイムアウトを設定
         const queryPromise = fetch(`${settings.VOICEVOX_ENDPOINT}/audio_query?text=${encodeURIComponent(text)}&speaker=${settings.VOICEVOX_SPEAKER}`, {
