@@ -720,24 +720,52 @@
         console.log('data.text:', data.text);
         console.log('data.data:', data.data);
 
+        // data.dataの中身も詳細に表示
+        if (data.data) {
+          console.log('data.data の詳細:', JSON.stringify(data.data, null, 2));
+          console.log('data.data のキー:', Object.keys(data.data));
+        }
+
         if (data.answer) {
           // Completion API の場合
           console.log('→ Completion APIのレスポンスとして処理');
           assistantResponse = data.answer.trim();
-        } else if (data.data && data.data.outputs) {
+        } else if (data.data) {
           // Workflow API の場合
           console.log('→ Workflow APIのレスポンスとして処理');
-          const outputs = data.data.outputs;
-          console.log('outputs:', outputs);
-          if (outputs.text) {
-            assistantResponse = outputs.text.trim();
-          } else if (outputs.answer) {
-            assistantResponse = outputs.answer.trim();
+
+          // data.data.outputs をチェック
+          if (data.data.outputs) {
+            const outputs = data.data.outputs;
+            console.log('outputs:', outputs);
+            if (outputs.text) {
+              assistantResponse = outputs.text.trim();
+            } else if (outputs.answer) {
+              assistantResponse = outputs.answer.trim();
+            } else {
+              // 最初の出力値を使用
+              const firstKey = Object.keys(outputs)[0];
+              console.log('最初の出力キー:', firstKey);
+              assistantResponse = outputs[firstKey] ? String(outputs[firstKey]).trim() : '';
+            }
           } else {
-            // 最初の出力値を使用
-            const firstKey = Object.keys(outputs)[0];
-            console.log('最初の出力キー:', firstKey);
-            assistantResponse = outputs[firstKey] ? String(outputs[firstKey]).trim() : '';
+            // data.data直下のフィールドをチェック
+            console.log('data.data.outputs がないため、data.data 直下を検索');
+            if (data.data.text) {
+              assistantResponse = data.data.text.trim();
+            } else if (data.data.answer) {
+              assistantResponse = data.data.answer.trim();
+            } else {
+              // data.data直下の文字列フィールドを探す
+              for (const key of Object.keys(data.data)) {
+                const value = data.data[key];
+                if (typeof value === 'string' && value.trim().length > 0) {
+                  console.log(`data.data.${key} に文字列発見: ${value}`);
+                  assistantResponse = value.trim();
+                  break;
+                }
+              }
+            }
           }
         } else if (data.text) {
           // Chat API の場合
