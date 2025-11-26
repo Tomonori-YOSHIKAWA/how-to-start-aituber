@@ -1118,7 +1118,8 @@
       // 設定値を取得
       const difyApiKey = document.getElementById('difyApiKey').value;
       const difyEndpoint = document.getElementById('difyEndpoint').value;
-      
+      const difyInputVariable = document.getElementById('difyInputVariable').value || 'query';
+
       if (!difyApiKey || !difyEndpoint) {
         statusElement.textContent = 'API Keyとエンドポイントを入力してください';
         statusElement.className = 'status-text disconnected';
@@ -1189,7 +1190,7 @@
                   },
                   body: JSON.stringify({
                     inputs: {
-                      question: "接続テスト"
+                      [difyInputVariable]: "接続テスト"
                     },
                     response_mode: "blocking",
                     user: "connection-test"
