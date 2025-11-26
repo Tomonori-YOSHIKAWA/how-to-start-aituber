@@ -175,25 +175,16 @@
       </div>
 
       <div class="settings-group">
-        <h3>OpenAI設定</h3>
+        <h3>Dify設定</h3>
         <div class="setting-item">
-          <label for="openaiApiKey">API Key:</label>
-          <input type="text" id="openaiApiKey">
+          <label for="difyApiKey">API Key:</label>
+          <input type="text" id="difyApiKey">
         </div>
         <div class="setting-item">
-          <label for="openaiModel">モデル:</label>
-          <select id="openaiModel">
-            <option value="gpt-4o-mini">gpt-4o-mini</option>
-            <option value="gpt-4o">gpt-4o</option>
-          </select>
-        </div>
-        <div class="setting-item">
-          <label for="systemPrompt">システムプロンプト:</label>
-          <textarea id="systemPrompt"></textarea>
-        </div>
-        <div class="setting-item">
-          <label for="commentSelectionPrompt">コメント選択プロンプト:</label>
-          <textarea id="commentSelectionPrompt"></textarea>
+          <label for="difyEndpoint">エンドポイント:</label>
+          <input type="text" id="difyEndpoint">
+          <button id="difyConnectButton" onclick="testDifyConnection()">接続テスト</button>
+          <div id="difyStatus" class="status-text"></div>
         </div>
       </div>
 
@@ -295,6 +286,23 @@
     <button id="stopButton" disabled>停止</button>
   </div>
 
+  <!-- Difyテスト用UI -->
+  <div class="settings">
+    <div class="settings-header">
+      <h2>Difyボット テスト</h2>
+    </div>
+    <div class="settings-content">
+      <div class="setting-item">
+        <label for="testMessage">テストメッセージ:</label>
+        <input type="text" id="testMessage" placeholder="ここにメッセージを入力してください">
+        <button id="testDifyButton" onclick="testDifyManually()">Difyでテスト</button>
+      </div>
+      <div id="testResponse" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border: 1px solid #ddd; min-height: 50px;">
+        応答がここに表示されます
+      </div>
+    </div>
+  </div>
+
   <div id="status">待機中...</div>
   <div id="error-message"></div>
   <div id="error-details"></div>
@@ -321,17 +329,31 @@
 
     // 初期値を設定
     function initializeSettings() {
-      document.getElementById('youtubeApiKey').value = DEFAULT_SETTINGS.YOUTUBE_API_KEY;
-      document.getElementById('videoId').value = DEFAULT_SETTINGS.VIDEO_ID;
-      document.getElementById('waitTime').value = DEFAULT_SETTINGS.WAIT_TIME;
-      document.getElementById('openaiApiKey').value = DEFAULT_SETTINGS.OPENAI_API_KEY;
-      document.getElementById('openaiModel').value = DEFAULT_SETTINGS.OPENAI_MODEL;
-      document.getElementById('systemPrompt').value = DEFAULT_SETTINGS.SYSTEM_PROMPT;
-      document.getElementById('commentSelectionPrompt').value = DEFAULT_SETTINGS.COMMENT_SELECTION_PROMPT;
-      document.getElementById('voicevoxEndpoint').value = DEFAULT_SETTINGS.VOICEVOX_ENDPOINT;
-      document.getElementById('voicevoxSpeaker').value = DEFAULT_SETTINGS.VOICEVOX_SPEAKER;
-      document.getElementById('conversationHistorySize').value = DEFAULT_SETTINGS.CONVERSATION_HISTORY_SIZE;
-      document.getElementById('vtsPort').value = DEFAULT_SETTINGS.VTS_PORT || '8001';
+      // DEFAULT_SETTINGSが利用できない場合のフォールバック値
+      const defaultValues = {
+        YOUTUBE_API_KEY: '',
+        VIDEO_ID: '',
+        WAIT_TIME: 10,
+        DIFY_API_KEY: 'app-OTi836Fh2FKQp5EBdc9KL2gQ',
+        DIFY_API_ENDPOINT: 'http://20.212.179.227/v1',
+        VOICEVOX_ENDPOINT: 'http://localhost:50021',
+        VOICEVOX_SPEAKER: 2,
+        CONVERSATION_HISTORY_SIZE: 10,
+        VTS_PORT: '8001'
+      };
+
+      // DEFAULT_SETTINGSが利用可能な場合はそれを使用、そうでなければフォールバック値を使用
+      const settings = (typeof DEFAULT_SETTINGS !== 'undefined') ? DEFAULT_SETTINGS : defaultValues;
+
+      document.getElementById('youtubeApiKey').value = settings.YOUTUBE_API_KEY;
+      document.getElementById('videoId').value = settings.VIDEO_ID;
+      document.getElementById('waitTime').value = settings.WAIT_TIME;
+      document.getElementById('difyApiKey').value = settings.DIFY_API_KEY;
+      document.getElementById('difyEndpoint').value = settings.DIFY_API_ENDPOINT;
+      document.getElementById('voicevoxEndpoint').value = settings.VOICEVOX_ENDPOINT;
+      document.getElementById('voicevoxSpeaker').value = settings.VOICEVOX_SPEAKER;
+      document.getElementById('conversationHistorySize').value = settings.CONVERSATION_HISTORY_SIZE;
+      document.getElementById('vtsPort').value = settings.VTS_PORT || '8001';
       updateVTSStatus();
     }
 
@@ -357,8 +379,8 @@
           showError("配信IDが設定されていません");
           return;
         }
-        if (!settings.OPENAI_API_KEY) {
-          showError("OpenAI API Keyが設定されていません");
+        if (!settings.DIFY_API_KEY) {
+          showError("Dify API Keyが設定されていません");
           return;
         }
         
@@ -379,23 +401,59 @@
         conversationHistory = [];
         updateConversationDisplay();
       });
+
+      // Difyテストボタンのイベントリスナー
+      document.getElementById('testDifyButton').addEventListener('click', async () => {
+        const testMessage = document.getElementById('testMessage').value;
+        const responseDiv = document.getElementById('testResponse');
+        
+        console.log('Difyテストボタンがクリックされました');
+        console.log('入力メッセージ:', testMessage);
+        
+        if (!testMessage.trim()) {
+          responseDiv.textContent = 'メッセージを入力してください';
+          return;
+        }
+
+        try {
+          responseDiv.textContent = 'Difyに問い合わせ中...';
+          console.log('getDifyResponse呼び出し開始');
+          const response = await getDifyResponse(testMessage);
+          console.log('getDifyResponse応答:', response);
+          responseDiv.textContent = response;
+        } catch (error) {
+          console.error('Difyテストエラー:', error);
+          responseDiv.textContent = 'エラーが発生しました: ' + error.message;
+        }
+      });
+
+      // Enterキーでテスト実行
+      document.getElementById('testMessage').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('testDifyButton').click();
+        }
+      });
     });
 
     // 設定値を取得する関数を修正
     function getSettings() {
+      // DEFAULT_SETTINGSが利用できない場合のフォールバック値
+      const defaultValues = {
+        MESSAGE_LIFETIME: 300,
+        VTS_PORT: '8001'
+      };
+      
       return {
         YOUTUBE_API_KEY: document.getElementById('youtubeApiKey').value,
         VIDEO_ID: document.getElementById('videoId').value,
-        OPENAI_API_KEY: document.getElementById('openaiApiKey').value,
-        OPENAI_MODEL: document.getElementById('openaiModel').value,
+        DIFY_API_KEY: document.getElementById('difyApiKey').value,
+        DIFY_API_ENDPOINT: document.getElementById('difyEndpoint').value,
         VOICEVOX_ENDPOINT: document.getElementById('voicevoxEndpoint').value,
         VOICEVOX_SPEAKER: parseInt(document.getElementById('voicevoxSpeaker').value),
         WAIT_TIME: parseInt(document.getElementById('waitTime').value),
-        SYSTEM_PROMPT: document.getElementById('systemPrompt').value,
-        COMMENT_SELECTION_PROMPT: document.getElementById('commentSelectionPrompt').value,
-        MESSAGE_LIFETIME: DEFAULT_SETTINGS.MESSAGE_LIFETIME,
+        MESSAGE_LIFETIME: (typeof DEFAULT_SETTINGS !== 'undefined') ? DEFAULT_SETTINGS.MESSAGE_LIFETIME : defaultValues.MESSAGE_LIFETIME,
         CONVERSATION_HISTORY_SIZE: parseInt(document.getElementById('conversationHistorySize').value),
-        VTS_PORT: document.getElementById('vtsPort').value
+        VTS_PORT: document.getElementById('vtsPort').value || defaultValues.VTS_PORT
       };
     }
 
@@ -506,44 +564,11 @@
       }
     }
 
-    // OpenAIを使って最適なコメントを選択する関数を追加
+    // シンプルなランダム選択関数（Dify呼び出しを回避）
     async function selectBestComment(messages) {
-      const settings = getSettings();
-      
-      const messagesList = messages.map(msg => ({
-        id: msg.id,
-        message: msg.snippet.displayMessage
-      }));
-
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${settings.OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: settings.OPENAI_MODEL,
-            messages: [
-              {"role": "system", "content": settings.COMMENT_SELECTION_PROMPT},
-              {"role": "user", "content": "コメントリスト：" + JSON.stringify(messagesList, null, 2)}
-            ]
-          })
-        });
-
-        if (!response.ok) {
-          console.error('コメント選択でエラーが発生しました。ランダム選択を使用します。');
-          return null;
-        }
-
-        const data = await response.json();
-        const result = JSON.parse(data.choices[0].message.content);
-        return result.selectedId;
-
-      } catch (error) {
-        console.error('コメント選択でエラーが発生しました。ランダム選択を使用します。', error);
-        return null;
-      }
+      // Difyでの複雑な選択処理を回避し、シンプルにランダム選択
+      console.log('コメント選択はランダム選択を使用します');
+      return null; // nullを返すことでランダム選択にフォールバック
     }
 
     // 取得したチャットメッセージから最適なものを選ぶ関数を修正
@@ -580,68 +605,162 @@
       return selectedMessage.snippet.displayMessage;
     }
 
-    // OpenAI APIを呼び出す関数を修正
-    async function getOpenAIResponse(commentText) {
+    // Dify APIを呼び出す関数を修正
+    async function getDifyResponse(commentText) {
       const settings = getSettings();
-      statusDiv.innerText = "OpenAIに問い合わせ中...";
+      statusDiv.innerText = "Difyに問い合わせ中...";
       clearError();
-      
-      // システムメッセージを含む基本的なメッセージ配列を作成
-      const messages = [
-        {"role": "system", "content": settings.SYSTEM_PROMPT}
-      ];
-      
-      // 会話履歴がある場合は追加
-      if (settings.CONVERSATION_HISTORY_SIZE > 0) {
-        conversationHistory.forEach(entry => {
-          messages.push(
-            {"role": "user", "content": entry.userMessage},
-            {"role": "assistant", "content": entry.assistantResponse}
-          );
-        });
-      }
-      
-      // 現在のメッセージを追加
-      messages.push({"role": "user", "content": commentText});
-
-      const url = 'https://api.openai.com/v1/chat/completions';
-      const payload = {
-        model: settings.OPENAI_MODEL,
-        messages: messages
-      };
 
       try {
-        const response = await fetch(url, {
+        console.log('Dify API呼び出し開始:', {
+          endpoint: settings.DIFY_API_ENDPOINT,
+          comment: commentText
+        });
+
+        // まずChat APIを試行
+        let response = await fetch(`${settings.DIFY_API_ENDPOINT}/chat-messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${settings.OPENAI_API_KEY}`
+            'Authorization': `Bearer ${settings.DIFY_API_KEY}`
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            inputs: {},
+            query: commentText,
+            response_mode: "blocking",
+            user: `user-${Date.now()}`,
+            conversation_id: ""
+          })
         });
+        
+        console.log('Chat API応答ステータス:', response.status);
+        
+        // Chat APIが失敗した場合、他のAPIを試行
+        if (response.status === 400) {
+          const errorData = await response.json();
+          if (errorData.code === 'not_chat_app' || errorData.code === 'app_unavailable') {
+            console.log('Chat APIではないため、Completion APIを使用');
+            
+            response = await fetch(`${settings.DIFY_API_ENDPOINT}/completion-messages`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${settings.DIFY_API_KEY}`
+              },
+              body: JSON.stringify({
+                inputs: {},
+                query: commentText,
+                response_mode: "blocking",
+                user: `user-${Date.now()}`
+              })
+            });
+            
+            console.log('Completion API応答ステータス:', response.status);
+            
+            // Completion APIも失敗した場合、Workflow APIを試行
+            if (response.status === 400) {
+              const completionErrorData = await response.json();
+              if (completionErrorData.code === 'app_unavailable' || completionErrorData.code === 'not_completion_app') {
+                console.log('Completion APIでもないため、Workflow APIを使用');
+                
+                response = await fetch(`${settings.DIFY_API_ENDPOINT}/workflows/run`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${settings.DIFY_API_KEY}`
+                  },
+                  body: JSON.stringify({
+                    inputs: {
+                      question: commentText
+                    },
+                    response_mode: "blocking",
+                    user: `user-${Date.now()}`
+                  })
+                });
+                
+                console.log('Workflow API応答ステータス:', response.status);
+              }
+            }
+          }
+        }
         
         if (!response.ok) {
           const errorText = await response.text();
-          let errorMessage = `OpenAI API エラー (${response.status})`;
+          console.error('Dify API エラー詳細:', errorText);
+          let errorMessage = `Dify API エラー (${response.status})`;
           if (response.status === 401) {
-            errorMessage = 'OpenAI API キーが無効です';
+            errorMessage = 'Dify API キーが無効です';
           } else if (response.status === 429) {
-            errorMessage = 'OpenAI APIの利用制限に達しました';
+            errorMessage = 'Dify APIの利用制限に達しました';
           }
           showError(errorMessage, errorText);
           return "申し訳ありませんが、エラーが発生しました。";
         }
 
         const data = await response.json();
+        console.log('=== Dify API応答データ（完全版） ===');
+        console.log(JSON.stringify(data, null, 2));
+        console.log('=== トップレベルのキー ===', Object.keys(data));
+
         if (data.error) {
+          console.error('Dify API応答エラー:', data.error);
           showError(
-            'OpenAI APIでエラーが発生しました。',
+            'Dify APIでエラーが発生しました。',
             JSON.stringify(data.error, null, 2)
           );
           return "申し訳ありませんが、エラーが発生しました。";
         }
-        if (data.choices && data.choices.length > 0) {
-          const assistantResponse = data.choices[0].message.content.trim();
+
+        // レスポンスから適切なフィールドを取得
+        let assistantResponse = '';
+
+        // より詳細なデバッグ情報を出力
+        console.log('レスポンス解析開始...');
+        console.log('data.answer:', data.answer);
+        console.log('data.text:', data.text);
+        console.log('data.data:', data.data);
+
+        if (data.answer) {
+          // Completion API の場合
+          console.log('→ Completion APIのレスポンスとして処理');
+          assistantResponse = data.answer.trim();
+        } else if (data.data && data.data.outputs) {
+          // Workflow API の場合
+          console.log('→ Workflow APIのレスポンスとして処理');
+          const outputs = data.data.outputs;
+          console.log('outputs:', outputs);
+          if (outputs.text) {
+            assistantResponse = outputs.text.trim();
+          } else if (outputs.answer) {
+            assistantResponse = outputs.answer.trim();
+          } else {
+            // 最初の出力値を使用
+            const firstKey = Object.keys(outputs)[0];
+            console.log('最初の出力キー:', firstKey);
+            assistantResponse = outputs[firstKey] ? String(outputs[firstKey]).trim() : '';
+          }
+        } else if (data.text) {
+          // Chat API の場合
+          console.log('→ Chat APIのレスポンスとして処理');
+          assistantResponse = data.text.trim();
+        } else {
+          // 他のパターンをチェック
+          console.log('→ 標準パターンに該当せず、代替フィールドを検索');
+          // data直下の文字列フィールドを探す
+          for (const key of Object.keys(data)) {
+            if (typeof data[key] === 'string' && data[key].trim().length > 0) {
+              console.log(`文字列フィールド発見: ${key} = ${data[key]}`);
+              assistantResponse = data[key].trim();
+              break;
+            }
+          }
+        }
+
+        console.log('最終的な応答:', assistantResponse);
+        console.log('応答の長さ:', assistantResponse.length);
+
+        if (assistantResponse) {
+          console.log('✓ Dify応答成功:', assistantResponse);
           
           // 会話履歴を更新
           if (settings.CONVERSATION_HISTORY_SIZE > 0) {
@@ -661,11 +780,19 @@
           
           return assistantResponse;
         }
-        showError('OpenAI APIからの応答が不正です。');
+
+        console.error('✗ Dify API応答に適切なフィールドがありません');
+        console.error('完全なレスポンス:', JSON.stringify(data, null, 2));
+        console.error('利用可能なフィールド:', Object.keys(data));
+        showError(
+          'Dify APIからの応答が不正です。コンソールログで詳細を確認してください。',
+          `応答フィールド: ${Object.keys(data).join(', ')}\n\n完全なレスポンス:\n${JSON.stringify(data, null, 2)}`
+        );
         return "申し訳ありませんが、返答を生成できませんでした。";
       } catch (error) {
+        console.error('Dify API呼び出し例外:', error);
         showError(
-          'OpenAI APIの呼び出しに失敗しました。',
+          'Dify APIの呼び出しに失敗しました。',
           error.toString()
         );
         return "申し訳ありませんが、エラーが発生しました。";
@@ -690,11 +817,11 @@
         }
 
         console.log("取得したチャット:", messageText);
-        const openaiResponse = await getOpenAIResponse(messageText);
-        console.log("OpenAIからの返答:", openaiResponse);
+        const difyResponse = await getDifyResponse(messageText);
+        console.log("Difyからの返答:", difyResponse);
 
         // speakWithVoicevoxの代わりにgenerateVoiceAndLipSyncを使用
-        await generateVoiceAndLipSync(openaiResponse);
+        await generateVoiceAndLipSync(difyResponse);
         
         // 音声発話完了後、直ちに次のコメントを探す
         if (shouldContinue) {
@@ -932,6 +1059,202 @@
         statusElement.textContent = '未接続';
         statusElement.className = 'status-text disconnected';
         connectButton.textContent = '接続する';
+      }
+    }
+
+    // Dify API接続テスト関数
+    async function testDifyConnection() {
+      const statusElement = document.getElementById('difyStatus');
+      const connectButton = document.getElementById('difyConnectButton');
+      
+      // 設定値を取得
+      const difyApiKey = document.getElementById('difyApiKey').value;
+      const difyEndpoint = document.getElementById('difyEndpoint').value;
+      
+      if (!difyApiKey || !difyEndpoint) {
+        statusElement.textContent = 'API Keyとエンドポイントを入力してください';
+        statusElement.className = 'status-text disconnected';
+        return;
+      }
+      
+      // テスト中の表示
+      statusElement.textContent = '接続テスト中...';
+      statusElement.className = 'status-text';
+      connectButton.disabled = true;
+      
+      try {
+        console.log('Dify接続テスト開始:', {
+          endpoint: difyEndpoint,
+          apiKey: difyApiKey.substring(0, 10) + '...'
+        });
+        
+        // まずChat APIを試行
+        let response = await fetch(`${difyEndpoint}/chat-messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${difyApiKey}`
+          },
+          body: JSON.stringify({
+            inputs: {},
+            query: "接続テスト",
+            response_mode: "blocking",
+            user: "connection-test"
+          })
+        });
+        
+        console.log('Chat API応答ステータス:', response.status);
+        
+        // Chat APIが失敗した場合、他のAPIを試行
+        if (response.status === 400) {
+          const errorData = await response.json();
+          if (errorData.code === 'not_chat_app' || errorData.code === 'app_unavailable') {
+            console.log('Chat APIではないため、Completion APIを試行');
+            
+            response = await fetch(`${difyEndpoint}/completion-messages`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${difyApiKey}`
+              },
+              body: JSON.stringify({
+                inputs: {},
+                query: "接続テスト",
+                response_mode: "blocking",
+                user: "connection-test"
+              })
+            });
+            
+            console.log('Completion API応答ステータス:', response.status);
+            
+            // Completion APIも失敗した場合、Workflow APIを試行
+            if (response.status === 400) {
+              const completionErrorData = await response.json();
+              if (completionErrorData.code === 'app_unavailable' || completionErrorData.code === 'not_completion_app') {
+                console.log('Completion APIでもないため、Workflow APIを試行');
+                
+                response = await fetch(`${difyEndpoint}/workflows/run`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${difyApiKey}`
+                  },
+                  body: JSON.stringify({
+                    inputs: {
+                      question: "接続テスト"
+                    },
+                    response_mode: "blocking",
+                    user: "connection-test"
+                  })
+                });
+                
+                console.log('Workflow API応答ステータス:', response.status);
+              }
+            }
+          }
+        }
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('=== Dify接続テスト成功 ===');
+          console.log('完全なレスポンス:', JSON.stringify(data, null, 2));
+          console.log('トップレベルのキー:', Object.keys(data));
+
+          statusElement.textContent = '接続成功';
+          statusElement.className = 'status-text connected';
+
+          // グローバル変数にアプリタイプを保存
+          if (data.answer) {
+            window.difyAppType = 'completion';
+            console.log('→ Completion App として検出');
+          } else if (data.data && data.data.outputs) {
+            window.difyAppType = 'workflow';
+            console.log('→ Workflow App として検出');
+          } else if (data.text) {
+            window.difyAppType = 'chat';
+            console.log('→ Chat App として検出');
+          } else {
+            window.difyAppType = 'unknown';
+            console.warn('→ 不明なアプリタイプ');
+          }
+          console.log('検出されたアプリタイプ:', window.difyAppType);
+          
+          // 接続成功時に自動で「こんにちは」を送信
+          setTimeout(async () => {
+            try {
+              console.log('オープニングメッセージ送信開始');
+              const openingResponse = await getDifyResponse("こんにちは");
+              console.log('オープニング応答:', openingResponse);
+              
+              // テスト用の応答表示エリアに結果を表示
+              const testResponseDiv = document.getElementById('testResponse');
+              if (testResponseDiv) {
+                testResponseDiv.textContent = `オープニング応答: ${openingResponse}`;
+              }
+            } catch (error) {
+              console.error('オープニングメッセージ送信エラー:', error);
+            }
+          }, 1000); // 1秒後に送信
+        } else {
+          const errorText = await response.text();
+          console.error('Dify接続テスト失敗:', response.status, errorText);
+          let errorMessage = `接続失敗 (${response.status})`;
+          
+          // エラーレスポンスの詳細を解析
+          try {
+            const errorData = JSON.parse(errorText);
+            if (response.status === 401) {
+              errorMessage = 'API キーが無効です';
+            } else if (response.status === 404) {
+              errorMessage = 'エンドポイントが見つかりません';
+            } else if (response.status === 400) {
+              if (errorData.code === 'app_unavailable') {
+                errorMessage = 'アプリが利用不可です。Difyでアプリを公開してください';
+              } else if (errorData.code === 'not_chat_app') {
+                errorMessage = 'アプリタイプが不適切です';
+              } else {
+                errorMessage = 'アプリの設定を確認してください: ' + errorData.message;
+              }
+            }
+          } catch (parseError) {
+            // JSON解析に失敗した場合は元のエラーメッセージを使用
+          }
+          statusElement.textContent = errorMessage;
+          statusElement.className = 'status-text disconnected';
+        }
+      } catch (error) {
+        console.error('Dify接続テスト例外:', error);
+        statusElement.textContent = '接続エラー: ' + error.message;
+        statusElement.className = 'status-text disconnected';
+      } finally {
+        connectButton.disabled = false;
+      }
+    }
+
+    // Difyテスト用の手動関数
+    async function testDifyManually() {
+      console.log('testDifyManually関数が呼ばれました');
+      
+      const testMessage = document.getElementById('testMessage').value;
+      const responseDiv = document.getElementById('testResponse');
+      
+      console.log('入力メッセージ:', testMessage);
+      
+      if (!testMessage.trim()) {
+        responseDiv.textContent = 'メッセージを入力してください';
+        console.log('メッセージが空です');
+        return;
+      }
+
+      try {
+        responseDiv.textContent = 'Difyに問い合わせ中...';
+        console.log('getDifyResponse呼び出し開始');
+        const response = await getDifyResponse(testMessage);
+        console.log('getDifyResponse応答:', response);
+        responseDiv.textContent = response;
+      } catch (error) {
+        console.error('Difyテストエラー:', error);
+        responseDiv.textContent = 'エラーが発生しました: ' + error.message;
       }
     }
 
